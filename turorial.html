@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>CineFetch · Tutorial</title>
+    <link rel="icon" href="https://i.postimg.cc/YSX9gf2y/3787a1b2-682e-4782-a00a-b8e33dc0a30d-removalai-preview.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f6f9fc;
+            color: #0b1a33;
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        body.dark {
+            background: #0d1424;
+            color: #eaf0f8;
+        }
+
+        .app {
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #dce3ed;
+        }
+
+        body.dark .header {
+            border-bottom-color: #28344e;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: -0.02em;
+            cursor: pointer;
+            color: #0b1a33;
+        }
+
+        body.dark .logo {
+            color: #eaf0f8;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid #cfdcec;
+            border-radius: 40px;
+            width: 42px;
+            height: 42px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2a3d5e;
+            transition: 0.2s;
+        }
+
+        body.dark .theme-toggle {
+            border-color: #3b4a6e;
+            color: #cbd8f0;
+        }
+
+        .theme-toggle:hover {
+            background: #e2ebf6;
+            border-color: #9bb1d0;
+        }
+
+        body.dark .theme-toggle:hover {
+            background: #1f2b44;
+            border-color: #5b6f96;
+        }
+
+        .back-home-btn {
+            background: transparent;
+            color: #1d3a5c;
+            border: 1px solid #bccde0;
+            padding: 0.4rem 1.1rem;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        body.dark .back-home-btn {
+            color: #d6e3f5;
+            border-color: #3e5077;
+        }
+
+        .back-home-btn:hover {
+            background: #e2ebf6;
+            border-color: #8aa3c4;
+        }
+
+        body.dark .back-home-btn:hover {
+            background: #1f2b44;
+            border-color: #60749e;
+        }
+
+        .back-home-btn i {
+            color: #3b82f6;
+        }
+
+        body.dark .back-home-btn i {
+            color: #5f8ef7;
+        }
+
+        /* Hero / Welcome */
+        .welcome-section {
+            text-align: center;
+            padding: 1.5rem 0 0.5rem;
+        }
+
+        .welcome-section h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-section p {
+            font-size: 1.05rem;
+            opacity: 0.6;
+            margin-top: 0.3rem;
+        }
+
+        /* Tutorial cards */
+        .tutorial-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 0.5rem;
+        }
+
+        .tutorial-card {
+            background: #ffffffdc;
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            border: 1px solid #eaf0f8;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        body.dark .tutorial-card {
+            background: #18223bb0;
+            border-color: #2e3d5e;
+        }
+
+        .tutorial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+        }
+
+        body.dark .tutorial-card:hover {
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .tutorial-image {
+            width: 100%;
+            height: 220px;
+            background: #dce3ed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body.dark .tutorial-image {
+            background: #1b2744;
+        }
+
+        .tutorial-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tutorial-image .placeholder-icon {
+            font-size: 4rem;
+            color: #3b82f6;
+            opacity: 0.4;
+        }
+
+        .tutorial-content {
+            padding: 1.5rem 1.8rem 1.8rem;
+        }
+
+        .tutorial-content h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .tutorial-content p {
+            font-size: 0.95rem;
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+
+        .tutorial-step {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.7rem;
+            border-radius: 20px;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.03em;
+        }
+
+        body.dark .tutorial-step {
+            background: #4b8bf7;
+        }
+
+        /* Footer */
+        .footer-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.85rem;
+            opacity: 0.5;
+            gap: 0.5rem 1rem;
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+            border-top: 1px solid #dce3ed;
+        }
+
+        body.dark .footer-bar {
+            border-top-color: #28344e;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            body {
+                padding: 0.8rem;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.4rem;
+            }
+
+            .actions {
+                justify-content: space-between;
+            }
+
+            .logo {
+                font-size: 1.1rem;
+            }
+
+            .logo img {
+                height: 32px;
+            }
+
+            .welcome-section h1 {
+                font-size: 1.6rem;
+            }
+
+            .welcome-section p {
+                font-size: 0.9rem;
+            }
+
+            .tutorial-image {
+                height: 160px;
+            }
+
+            .tutorial-content {
+                padding: 1.2rem 1.2rem 1.5rem;
+            }
+
+            .tutorial-content h3 {
+                font-size: 1rem;
+            }
+
+            .tutorial-content p {
+                font-size: 0.85rem;
+            }
+
+            .back-home-btn {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.9rem;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .tutorial-image {
+                height: 130px;
+            }
+
+            .tutorial-content {
+                padding: 1rem 0.8rem 1.2rem;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e2eaf3;
+        }
+
+        body.dark ::-webkit-scrollbar-track {
+            background: #1b2744;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+
+        <header class="header">
+            <div class="logo" id="logoBtn">
+                <img src="https://i.postimg.cc/YSX9gf2y/3787a1b2-682e-4782-a00a-b8e33dc0a30d-removalai-preview.png" alt="CineFetch">
+                <span>CineFetch</span>
+            </div>
+            <div class="actions">
+                <button class="back-home-btn" id="backHomeBtn"><i class="fas fa-home"></i> Back to Home</button>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+            </div>
+        </header>
+
+        <!-- Welcome -->
+        <div class="welcome-section">
+            <h1>👋 Hello, CineFetch!</h1>
+            <p>Your ultimate movie streaming companion — learn how to get started below.</p>
+        </div>
+
+        <!-- Tutorial Cards -->
+        <div class="tutorial-grid">
+
+            <!-- Card 1 -->
+            <div class="tutorial-card">
+                <div class="tutorial-image">
+                    <img src="https://i.postimg.cc/FRpMP9J2/placeholder-1.jpg" alt="Step 1" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas fa-search placeholder-icon\\'></i>'">
+                    <i class="fas fa-search placeholder-icon" style="display:none;"></i>
+                </div>
+                <div class="tutorial-content">
+                    <span class="tutorial-step">Step 1</span>
+                    <h3>Search for any movie</h3>
+                    <p>Enter the IMDb ID (e.g., tt0468569) in the search bar. You can also search by movie title if you have the exact ID. CineFetch will load the movie instantly.</p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="tutorial-card">
+                <div class="tutorial-image">
+                    <img src="https://i.postimg.cc/7h9wcZpc/placeholder-2.jpg" alt="Step 2" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas fa-layer-group placeholder-icon\\'></i>'">
+                    <i class="fas fa-layer-group placeholder-icon" style="display:none;"></i>
+                </div>
+                <div class="tutorial-content">
+                    <span class="tutorial-step">Step 2</span>
+                    <h3>Select season &amp; episode</h3>
+                    <p>For TV series, specify the season and episode numbers. CineFetch will load the correct episode from the embed source. Leave blank for movies.</p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="tutorial-card">
+                <div class="tutorial-image">
+                    <img src="https://i.postimg.cc/9M4XKhNL/placeholder-3.jpg" alt="Step 3" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas fa-user-check placeholder-icon\\'></i>'">
+                    <i class="fas fa-user-check placeholder-icon" style="display:none;"></i>
+                </div>
+                <div class="tutorial-content">
+                    <span class="tutorial-step">Step 3</span>
+                    <h3>Sign in &amp; sync history</h3>
+                    <p>Create an account or sign in with Google to save your watch history. Your progress syncs across devices, so you can resume anywhere.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-bar">
+            <span><i class="fas fa-circle-info"></i> CineFetch · v1.0</span>
+            <span>Made with <i class="fas fa-heart" style="color:#3b82f6;"></i></span>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const backHomeBtn = document.getElementById('backHomeBtn');
+            const logoBtn = document.getElementById('logoBtn');
+
+            // Theme
+            function setTheme(dark) {
+                document.body.classList.toggle('dark', dark);
+                const icon = themeToggle.querySelector('i');
+                icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+                localStorage.setItem('theme', dark ? 'dark' : 'light');
+            }
+
+            const storedTheme = localStorage.getItem('theme');
+            if (storedTheme === 'dark') setTheme(true);
+
+            themeToggle.addEventListener('click', function() {
+                setTheme(!document.body.classList.contains('dark'));
+            });
+
+            // Navigation
+            function goHome() {
+                window.location.href = 'index.html';
+            }
+
+            backHomeBtn.addEventListener('click', goHome);
+            logoBtn.addEventListener('click', goHome);
+
+            // Handle image load errors - show placeholder icon
+            document.querySelectorAll('.tutorial-image img').forEach(img => {
+                img.addEventListener('error', function() {
+                    this.style.display = 'none';
+                    const icon = this.parentElement.querySelector('.placeholder-icon');
+                    if (icon) {
+                        icon.style.display = 'flex';
+                    }
+                });
+            });
+
+            console.log('Tutorial page loaded');
+        })();
+    </script>
+</body>
+</html>
