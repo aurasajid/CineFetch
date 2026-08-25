@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <title>OpenPlayer · IMDb watch</title>
+  <!-- Font & Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      transition: background-color 0.25s ease, color 0.2s, border-color 0.2s;
+    }
+    body {
+      min-height: 100vh;
+      background: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    body.dark {
+      background: #0b1120;
+      color: #e2e8f0;
+    }
+    .app {
+      max-width: 1280px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    /* header + theme toggle */
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #d1d5db;
+    }
+    body.dark .header {
+      border-bottom-color: #2d3a5e;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 1.4rem;
+      letter-spacing: -0.02em;
+    }
+    .logo i {
+      color: #3b82f6;
+      font-size: 1.8rem;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .theme-toggle {
+      background: #e2e8f0;
+      border: none;
+      border-radius: 40px;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    body.dark .theme-toggle {
+      background: #2d3a5e;
+      color: #f1f5f9;
+    }
+    .theme-toggle:hover {
+      transform: scale(1.03);
+      background: #cbd5e1;
+    }
+    body.dark .theme-toggle:hover {
+      background: #3b4a72;
+    }
+    .auth-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(59,130,246,0.25);
+      transition: 0.15s;
+    }
+    .auth-btn:hover {
+      background: #2563eb;
+      transform: scale(1.01);
+    }
+    .auth-btn.outline {
+      background: transparent;
+      color: #3b82f6;
+      border: 1.5px solid #3b82f6;
+      box-shadow: none;
+    }
+    body.dark .auth-btn.outline {
+      color: #93b4fa;
+      border-color: #93b4fa;
+    }
+    .auth-btn.outline:hover {
+      background: #3b82f610;
+    }
+    /* controls row */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1rem;
+      background: #ffffffcc;
+      backdrop-filter: blur(4px);
+      padding: 1.2rem 1.5rem;
+      border-radius: 28px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.03);
+      border: 1px solid #e9edf2;
+    }
+    body.dark .controls {
+      background: #1e293bb0;
+      backdrop-filter: blur(4px);
+      border-color: #33415e;
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem 0.6rem;
+      flex-wrap: wrap;
+      flex: 1 1 200px;
+    }
+    .input-group label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      opacity: 0.8;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .input-group input {
+      background: #f1f5f9;
+      border: 1px solid #d1d9e6;
+      padding: 0.5rem 0.9rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      min-width: 70px;
+      flex: 1 0 80px;
+      color: #0f172a;
+    }
+    body.dark .input-group input {
+      background: #1f2a44;
+      border-color: #3f5077;
+      color: #f1f5f9;
+    }
+    .input-group input:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+      border-color: transparent;
+    }
+    .load-btn {
+      background: #3b82f6;
+      border: none;
+      color: white;
+      padding: 0.5rem 1.8rem;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 10px rgba(59,130,246,0.3);
+      transition: 0.15s;
+      white-space: nowrap;
+    }
+    .load-btn:hover {
+      background: #2563eb;
+      transform: scale(1.02);
+    }
+    /* iframe wrapper */
+    .player-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%; /* 16:9 */
+      background: #0b1120;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+      border: 1px solid #e2e8f0;
+    }
+    body.dark .player-wrapper {
+      border-color: #2d3a5e;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    }
+    .player-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+    /* status & history */
+    .footer-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      opacity: 0.75;
+      gap: 0.5rem 1rem;
+      margin-top: 0.25rem;
+      padding: 0.25rem 0.5rem;
+    }
+    .history-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .history-badge i {
+      color: #3b82f6;
+    }
+    .resume-link {
+      color: #3b82f6;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline dotted;
+      text-underline-offset: 4px;
+    }
+    .resume-link:hover {
+      color: #1d4ed8;
+    }
+    /* popup overlay */
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .popup-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .popup-card {
+      background: white;
+      max-width: 420px;
+      width: 100%;
+      border-radius: 48px;
+      padding: 2.5rem 2rem 2rem;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+      text-align: center;
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+    body.dark .popup-card {
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+    .popup-overlay.active .popup-card {
+      transform: scale(1);
+    }
+    .popup-card h2 {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .popup-card p {
+      opacity: 0.7;
+      margin-bottom: 1.8rem;
+      font-size: 0.95rem;
+    }
+    .popup-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .popup-actions button {
+      background: #f1f5f9;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 60px;
+      font-weight: 500;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    body.dark .popup-actions button {
+      background: #2d3a5e;
+      color: #f1f5f9;
+    }
+    .popup-actions .google-btn {
+      background: #eef2ff;
+      color: #1e293b;
+    }
+    body.dark .popup-actions .google-btn {
+      background: #3b4a72;
+      color: white;
+    }
+    .popup-actions .email-btn {
+      background: #3b82f6;
+      color: white;
+    }
+    .popup-actions .email-btn:hover {
+      background: #2563eb;
+    }
+    .popup-actions .skip-btn {
+      background: transparent;
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: 0.4rem;
+    }
+    body.dark .popup-actions .skip-btn {
+      color: #94a3b8;
+    }
+    .popup-actions button:hover {
+      transform: scale(1.02);
+    }
+    /* responsive */
+    @media (max-width: 640px) {
+      body { padding: 0.8rem; }
+      .controls { padding: 1rem; flex-direction: column; align-items: stretch; }
+      .input-group { flex: 1; }
+      .load-btn { justify-content: center; }
+      .header { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+      .actions { justify-content: space-between; }
+    }
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; }
+    body.dark ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 20px; }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- header -->
+  <header class="header">
+    <div class="logo"><i class="fas fa-film"></i> OpenPlayer</div>
+    <div class="actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+      <button class="auth-btn" id="authButton"><i class="fas fa-user"></i> <span id="authLabel">Sign in</span></button>
+    </div>
+  </header>
+
+  <!-- controls -->
+  <div class="controls">
+    <div class="input-group">
+      <label><i class="fas fa-id-card"></i> IMDb</label>
+      <input type="text" id="imdbInput" placeholder="tt1234567" value="tt1375666">
+    </div>
+    <div class="input-group">
+      <label><i class="fas fa-layer-group"></i> S</label>
+      <input type="number" id="seasonInput" min="1" value="1">
+    </div>
+    <div class="input-group">
+      <label><i class="fas fa-list"></i> E</label>
+      <input type="number" id="episodeInput" min="1" value="1">
+    </div>
+    <button class="load-btn" id="loadBtn"><i class="fas fa-play"></i> Watch</button>
+  </div>
+
+  <!-- player -->
+  <div class="player-wrapper" id="playerWrapper">
+    <iframe id="videoIframe" src="https://vaplayer.ru/embed/movie/tt1375666/1/1" allowfullscreen loading="lazy"></iframe>
+  </div>
+
+  <!-- footer & history -->
+  <div class="footer-bar">
+    <div class="history-badge">
+      <i class="fas fa-clock-rotate-left"></i> 
+      <span id="historyStatus">No history</span>
+      <span id="resumeLink" class="resume-link" style="display:none;">↻ resume</span>
+    </div>
+    <div><i class="fas fa-circle-info"></i> vaplayer.ru</div>
+  </div>
+</div>
+
+<!-- login popup -->
+<div class="popup-overlay" id="loginPopup">
+  <div class="popup-card">
+    <h2><i class="fas fa-right-to-bracket" style="color:#3b82f6;"></i> Sign in</h2>
+    <p>Sync your watch history across devices.</p>
+    <div class="popup-actions">
+      <button class="google-btn" id="googleLoginBtn"><i class="fab fa-google"></i> Continue with Google</button>
+      <button class="email-btn" id="emailLoginBtn"><i class="fas fa-envelope"></i> Sign in with Email (demo)</button>
+      <button class="skip-btn" id="skipLoginBtn">Continue without account →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ---------- Firebase ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-TWK3E35weTqdw46A8RNWX9lM2GANJbA",
+      authDomain: "openplayer-18319.firebaseapp.com",
+      projectId: "openplayer-18319",
+      storageBucket: "openplayer-18319.firebasestorage.app",
+      messagingSenderId: "109099308286",
+      appId: "1:109099308286:web:38302196234b7bb52701af",
+      measurementId: "G-L66MT3ZTHB"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // ---------- DOM refs ----------
+    const iframe = document.getElementById('videoIframe');
+    const imdbInput = document.getElementById('imdbInput');
+    const seasonInput = document.getElementById('seasonInput');
+    const episodeInput = document.getElementById('episodeInput');
+    const loadBtn = document.getElementById('loadBtn');
+    const themeToggle = document.getElementById('themeToggle');
+    const authBtn = document.getElementById('authButton');
+    const authLabel = document.getElementById('authLabel');
+    const popup = document.getElementById('loginPopup');
+    const googleBtn = document.getElementById('googleLoginBtn');
+    const emailBtn = document.getElementById('emailLoginBtn');
+    const skipBtn = document.getElementById('skipLoginBtn');
+    const historyStatus = document.getElementById('historyStatus');
+    const resumeLink = document.getElementById('resumeLink');
+
+    // ---------- state ----------
+    let currentUser = null;
+    let watchHistory = { id: '', season: 1, episode: 1 }; // last watched
+    let isLoggedIn = false;
+    let skipPopup = false;  // if user skips, don't show again this session
+
+    // ---------- helpers ----------
+    function updateIframe(id, season, episode) {
+      if (!id) id = 'tt1375666';
+      const url = `https://vaplayer.ru/embed/movie/${id}/${season}/${episode}`;
+      iframe.src = url;
+      // store last
+      watchHistory.id = id;
+      watchHistory.season = parseInt(season) || 1;
+      watchHistory.episode = parseInt(episode) || 1;
+      if (isLoggedIn && currentUser) {
+        // persist to firebase user (via localstorage simulation)
+        try {
+          localStorage.setItem(`openplayer_${currentUser.uid}`, JSON.stringify(watchHistory));
+        } catch(e) {}
+      }
+      updateHistoryUI();
+    }
+
+    function loadFromHistory(history) {
+      if (history && history.id) {
+        imdbInput.value = history.id;
+        seasonInput.value = history.season || 1;
+        episodeInput.value = history.episode || 1;
+        updateIframe(history.id, history.season || 1, history.episode || 1);
+      }
+    }
+
+    function updateHistoryUI() {
+      if (watchHistory.id) {
+        historyStatus.textContent = `Last: ${watchHistory.id} S${watchHistory.season} E${watchHistory.episode}`;
+        resumeLink.style.display = 'inline';
+      } else {
+        historyStatus.textContent = 'No history';
+        resumeLink.style.display = 'none';
+      }
+    }
+
+    // resume click
+    resumeLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (watchHistory.id) {
+        imdbInput.value = watchHistory.id;
+        seasonInput.value = watchHistory.season;
+        episodeInput.value = watchHistory.episode;
+        updateIframe(watchHistory.id, watchHistory.season, watchHistory.episode);
+      }
+    });
+
+    // ---------- load button ----------
+    loadBtn.addEventListener('click', function() {
+      const id = imdbInput.value.trim() || 'tt1375666';
+      const season = parseInt(seasonInput.value) || 1;
+      const episode = parseInt(episodeInput.value) || 1;
+      updateIframe(id, season, episode);
+    });
+
+    // ---------- theme ----------
+    function setTheme(dark) {
+      document.body.classList.toggle('dark', dark);
+      const icon = themeToggle.querySelector('i');
+      if (dark) {
+        icon.className = 'fas fa-sun';
+      } else {
+        icon.className = 'fas fa-moon';
+      }
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'dark') setTheme(true);
+    themeToggle.addEventListener('click', function() {
+      setTheme(!document.body.classList.contains('dark'));
+    });
+
+    // ---------- auth UI ----------
+    function updateAuthUI(user) {
+      if (user) {
+        authLabel.textContent = user.displayName || user.email || 'Account';
+        authBtn.innerHTML = `<i class="fas fa-user-check"></i> <span id="authLabel">${user.displayName || user.email || 'Account'}</span>`;
+        isLoggedIn = true;
+        currentUser = user;
+        // load history from localStorage
+        try {
+          const stored = localStorage.getItem(`openplayer_${user.uid}`);
+          if (stored) {
+            const hist = JSON.parse(stored);
+            if (hist && hist.id) {
+              watchHistory = hist;
+              loadFromHistory(hist);
+            }
+          }
+        } catch(e) {}
+        popup.classList.remove('active');
+      } else {
+        authLabel.textContent = 'Sign in';
+        authBtn.innerHTML = `<i class="fas fa-user"></i> <span id="authLabel">Sign in</span>`;
+        isLoggedIn = false;
+        currentUser = null;
+        // show popup if not skipped
+        if (!skipPopup) {
+          setTimeout(() => popup.classList.add('active'), 400);
+        }
+      }
+    }
+
+    // ---------- firebase auth ----------
+    auth.onAuthStateChanged(user => {
+      updateAuthUI(user);
+    });
+
+    // login methods
+    googleBtn.addEventListener('click', function() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(e => alert('Google login error: '+e.message));
+    });
+
+    emailBtn.addEventListener('click', function() {
+      // demo: sign in with mock email
+      const email = prompt('Enter demo email (any)','user@demo.com');
+      if (email) {
+        auth.signInWithEmailAndPassword(email, 'password123').catch(() => {
+          // if not exist, create
+          auth.createUserWithEmailAndPassword(email, 'password123').catch(err => alert(err.message));
+        });
+      }
+    });
+
+    skipBtn.addEventListener('click', function() {
+      skipPopup = true;
+      popup.classList.remove('active');
+    });
+
+    // auth button click -> show popup or logout
+    authBtn.addEventListener('click', function() {
+      if (isLoggedIn && currentUser) {
+        if (confirm('Sign out?')) {
+          auth.signOut();
+          skipPopup = false;
+        }
+      } else {
+        popup.classList.add('active');
+      }
+    });
+
+    // close popup on overlay click (optional)
+    popup.addEventListener('click', function(e) {
+      if (e.target === popup) {
+        popup.classList.remove('active');
+        skipPopup = true;
+      }
+    });
+
+    // ---------- initial load ----------
+    // if no user, show popup after small delay
+    setTimeout(() => {
+      if (!isLoggedIn && !skipPopup) {
+        popup.classList.add('active');
+      }
+    }, 600);
+
+    // load default movie if no history
+    if (!watchHistory.id) {
+      const defaultId = 'tt1375666';
+      imdbInput.value = defaultId;
+      updateIframe(defaultId, 1, 1);
+    } else {
+      loadFromHistory(watchHistory);
+    }
+
+    // ---------- network routing (fake "reduce buffer" hint) ----------
+    // we add a 'preconnect' hint to vaplayer domain
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = 'https://vaplayer.ru';
+    document.head.appendChild(link);
+    // also preconnect to firebase
+    const link2 = document.createElement('link');
+    link2.rel = 'preconnect';
+    link2.href = 'https://www.googleapis.com';
+    document.head.appendChild(link2);
+
+    // handle enter key on inputs
+    [imdbInput, seasonInput, episodeInput].forEach(inp => {
+      inp.addEventListener('keypress', e => { if (e.key === 'Enter') loadBtn.click(); });
+    });
+
+    console.log('OpenPlayer ready');
+  })();
+</script>
+</body>
+</html>
