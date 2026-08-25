@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-  <title>OpenPlayer · IMDb watch</title>
+  <title>OpenPlayer</title>
   <!-- Font & Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      transition: background-color 0.25s ease, color 0.2s, border-color 0.2s;
+      transition: background-color 0.15s ease, color 0.15s, border-color 0.15s;
     }
     body {
       min-height: 100vh;
@@ -36,7 +37,6 @@
       flex-direction: column;
       gap: 1.5rem;
     }
-    /* header + theme toggle */
     .header {
       display: flex;
       flex-wrap: wrap;
@@ -106,25 +106,51 @@
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(59,130,246,0.25);
       transition: 0.15s;
+      position: relative;
     }
     .auth-btn:hover {
       background: #2563eb;
       transform: scale(1.01);
     }
-    .auth-btn.outline {
-      background: transparent;
+    .auth-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      min-width: 200px;
+      border-radius: 16px;
+      padding: 0.5rem 0;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      margin-top: 0.5rem;
+      z-index: 100;
+    }
+    body.dark .auth-dropdown {
+      background: #1e293b;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .auth-dropdown.active {
+      display: block;
+    }
+    .auth-dropdown-item {
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      transition: background 0.1s;
+    }
+    .auth-dropdown-item:hover {
+      background: #f1f5f9;
+    }
+    body.dark .auth-dropdown-item:hover {
+      background: #2d3a5e;
+    }
+    .auth-dropdown-item i {
+      width: 20px;
       color: #3b82f6;
-      border: 1.5px solid #3b82f6;
-      box-shadow: none;
     }
-    body.dark .auth-btn.outline {
-      color: #93b4fa;
-      border-color: #93b4fa;
-    }
-    .auth-btn.outline:hover {
-      background: #3b82f610;
-    }
-    /* controls row */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -197,11 +223,10 @@
       background: #2563eb;
       transform: scale(1.02);
     }
-    /* iframe wrapper */
     .player-wrapper {
       position: relative;
       width: 100%;
-      padding-bottom: 56.25%; /* 16:9 */
+      padding-bottom: 56.25%;
       background: #0b1120;
       border-radius: 32px;
       overflow: hidden;
@@ -221,7 +246,6 @@
       border: 0;
       background: #000;
     }
-    /* status & history */
     .footer-bar {
       display: flex;
       flex-wrap: wrap;
@@ -252,7 +276,6 @@
     .resume-link:hover {
       color: #1d4ed8;
     }
-    /* popup overlay */
     .popup-overlay {
       position: fixed;
       inset: 0;
@@ -348,7 +371,27 @@
     .popup-actions button:hover {
       transform: scale(1.02);
     }
-    /* responsive */
+    .hidden {
+      display: none !important;
+    }
+    .register-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+    .register-fields input {
+      padding: 0.7rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #d1d9e6;
+      background: #f1f5f9;
+      font-size: 0.95rem;
+    }
+    body.dark .register-fields input {
+      background: #1f2a44;
+      border-color: #3f5077;
+      color: #f1f5f9;
+    }
     @media (max-width: 640px) {
       body { padding: 0.8rem; }
       .controls { padding: 1rem; flex-direction: column; align-items: stretch; }
@@ -357,7 +400,6 @@
       .header { flex-direction: column; align-items: stretch; gap: 0.5rem; }
       .actions { justify-content: space-between; }
     }
-    /* scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #e2e8f0; }
     body.dark ::-webkit-scrollbar-track { background: #1e293b; }
@@ -367,38 +409,41 @@
 <body>
 <div class="app" id="app">
 
-  <!-- header -->
   <header class="header">
     <div class="logo"><i class="fas fa-film"></i> OpenPlayer</div>
     <div class="actions">
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
-      <button class="auth-btn" id="authButton"><i class="fas fa-user"></i> <span id="authLabel">Sign in</span></button>
+      <div style="position:relative;">
+        <button class="auth-btn" id="authButton"><i class="fas fa-user"></i> <span id="authLabel">Sign in</span></button>
+        <div class="auth-dropdown" id="authDropdown">
+          <div class="auth-dropdown-item" id="dropdownProfile"><i class="fas fa-user"></i> Profile</div>
+          <div class="auth-dropdown-item" id="dropdownHistory"><i class="fas fa-clock-rotate-left"></i> Watch History</div>
+          <div class="auth-dropdown-item" id="dropdownLogout"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- controls -->
   <div class="controls">
     <div class="input-group">
       <label><i class="fas fa-id-card"></i> IMDb</label>
-      <input type="text" id="imdbInput" placeholder="tt1234567" value="tt1375666">
+      <input type="text" id="imdbInput" placeholder="tt1234567">
     </div>
     <div class="input-group">
       <label><i class="fas fa-layer-group"></i> S</label>
-      <input type="number" id="seasonInput" min="1" value="1">
+      <input type="number" id="seasonInput" min="1" placeholder="1">
     </div>
     <div class="input-group">
       <label><i class="fas fa-list"></i> E</label>
-      <input type="number" id="episodeInput" min="1" value="1">
+      <input type="number" id="episodeInput" min="1" placeholder="1">
     </div>
     <button class="load-btn" id="loadBtn"><i class="fas fa-play"></i> Watch</button>
   </div>
 
-  <!-- player -->
   <div class="player-wrapper" id="playerWrapper">
-    <iframe id="videoIframe" src="https://vaplayer.ru/embed/movie/tt1375666/1/1" allowfullscreen loading="lazy"></iframe>
+    <iframe id="videoIframe" src="" allowfullscreen loading="lazy"></iframe>
   </div>
 
-  <!-- footer & history -->
   <div class="footer-bar">
     <div class="history-badge">
       <i class="fas fa-clock-rotate-left"></i> 
@@ -409,22 +454,28 @@
   </div>
 </div>
 
-<!-- login popup -->
 <div class="popup-overlay" id="loginPopup">
   <div class="popup-card">
     <h2><i class="fas fa-right-to-bracket" style="color:#3b82f6;"></i> Sign in</h2>
-    <p>Sync your watch history across devices.</p>
-    <div class="popup-actions">
-      <button class="google-btn" id="googleLoginBtn"><i class="fab fa-google"></i> Continue with Google</button>
-      <button class="email-btn" id="emailLoginBtn"><i class="fas fa-envelope"></i> Sign in with Email (demo)</button>
-      <button class="skip-btn" id="skipLoginBtn">Continue without account →</button>
+    <p id="popupMessage">Sync your watch history across devices.</p>
+    <div id="loginForm">
+      <div class="register-fields hidden" id="registerFields">
+        <input type="text" id="registerName" placeholder="Full Name" required>
+        <input type="email" id="registerEmail" placeholder="Email" required>
+        <input type="password" id="registerPassword" placeholder="Password (6+ chars)" required>
+      </div>
+      <div class="popup-actions">
+        <button class="google-btn" id="googleLoginBtn"><i class="fab fa-google"></i> Continue with Google</button>
+        <button class="email-btn" id="emailLoginBtn"><i class="fas fa-envelope"></i> <span id="emailBtnText">Sign in with Email</span></button>
+        <button class="skip-btn" id="skipLoginBtn">Continue without account →</button>
+        <button class="skip-btn" id="toggleRegisterBtn" style="font-size:0.85rem;color:#3b82f6;">Create account instead</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
   (function() {
-    // ---------- Firebase ----------
     const firebaseConfig = {
       apiKey: "AIzaSyC-TWK3E35weTqdw46A8RNWX9lM2GANJbA",
       authDomain: "openplayer-18319.firebaseapp.com",
@@ -436,8 +487,8 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // ---------- DOM refs ----------
     const iframe = document.getElementById('videoIframe');
     const imdbInput = document.getElementById('imdbInput');
     const seasonInput = document.getElementById('seasonInput');
@@ -449,30 +500,56 @@
     const popup = document.getElementById('loginPopup');
     const googleBtn = document.getElementById('googleLoginBtn');
     const emailBtn = document.getElementById('emailLoginBtn');
+    const emailBtnText = document.getElementById('emailBtnText');
     const skipBtn = document.getElementById('skipLoginBtn');
+    const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
+    const registerFields = document.getElementById('registerFields');
+    const registerName = document.getElementById('registerName');
+    const registerEmail = document.getElementById('registerEmail');
+    const registerPassword = document.getElementById('registerPassword');
+    const popupMessage = document.getElementById('popupMessage');
     const historyStatus = document.getElementById('historyStatus');
     const resumeLink = document.getElementById('resumeLink');
+    const authDropdown = document.getElementById('authDropdown');
+    const dropdownProfile = document.getElementById('dropdownProfile');
+    const dropdownHistory = document.getElementById('dropdownHistory');
+    const dropdownLogout = document.getElementById('dropdownLogout');
 
-    // ---------- state ----------
     let currentUser = null;
-    let watchHistory = { id: '', season: 1, episode: 1 }; // last watched
+    let watchHistory = { id: '', season: 0, episode: 0 };
     let isLoggedIn = false;
-    let skipPopup = false;  // if user skips, don't show again this session
+    let skipPopup = false;
+    let isRegisterMode = false;
 
-    // ---------- helpers ----------
+    function buildEmbedUrl(id, season, episode) {
+      if (season && episode && parseInt(season) > 0 && parseInt(episode) > 0) {
+        return `https://vaplayer.ru/embed/movie/${id}/${season}/${episode}`;
+      }
+      return `https://vaplayer.ru/embed/movie/${id}`;
+    }
+
     function updateIframe(id, season, episode) {
-      if (!id) id = 'tt1375666';
-      const url = `https://vaplayer.ru/embed/movie/${id}/${season}/${episode}`;
+      if (!id) {
+        iframe.src = '';
+        return;
+      }
+      const seasonNum = parseInt(season) || 0;
+      const episodeNum = parseInt(episode) || 0;
+      const url = buildEmbedUrl(id, seasonNum, episodeNum);
       iframe.src = url;
-      // store last
+      
       watchHistory.id = id;
-      watchHistory.season = parseInt(season) || 1;
-      watchHistory.episode = parseInt(episode) || 1;
+      watchHistory.season = seasonNum;
+      watchHistory.episode = episodeNum;
+      
       if (isLoggedIn && currentUser) {
-        // persist to firebase user (via localstorage simulation)
-        try {
-          localStorage.setItem(`openplayer_${currentUser.uid}`, JSON.stringify(watchHistory));
-        } catch(e) {}
+        const userRef = db.collection('users').doc(currentUser.uid);
+        userRef.set({
+          displayName: currentUser.displayName || 'User',
+          email: currentUser.email,
+          lastWatched: watchHistory,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(console.error);
       }
       updateHistoryUI();
     }
@@ -480,15 +557,19 @@
     function loadFromHistory(history) {
       if (history && history.id) {
         imdbInput.value = history.id;
-        seasonInput.value = history.season || 1;
-        episodeInput.value = history.episode || 1;
-        updateIframe(history.id, history.season || 1, history.episode || 1);
+        seasonInput.value = history.season || '';
+        episodeInput.value = history.episode || '';
+        updateIframe(history.id, history.season, history.episode);
       }
     }
 
     function updateHistoryUI() {
       if (watchHistory.id) {
-        historyStatus.textContent = `Last: ${watchHistory.id} S${watchHistory.season} E${watchHistory.episode}`;
+        let displayText = `Last: ${watchHistory.id}`;
+        if (watchHistory.season > 0 && watchHistory.episode > 0) {
+          displayText += ` S${watchHistory.season} E${watchHistory.episode}`;
+        }
+        historyStatus.textContent = displayText;
         resumeLink.style.display = 'inline';
       } else {
         historyStatus.textContent = 'No history';
@@ -496,26 +577,40 @@
       }
     }
 
-    // resume click
+    // Resume link
     resumeLink.addEventListener('click', function(e) {
       e.preventDefault();
       if (watchHistory.id) {
         imdbInput.value = watchHistory.id;
-        seasonInput.value = watchHistory.season;
-        episodeInput.value = watchHistory.episode;
+        seasonInput.value = watchHistory.season || '';
+        episodeInput.value = watchHistory.episode || '';
         updateIframe(watchHistory.id, watchHistory.season, watchHistory.episode);
       }
     });
 
-    // ---------- load button ----------
+    // Load button
     loadBtn.addEventListener('click', function() {
-      const id = imdbInput.value.trim() || 'tt1375666';
-      const season = parseInt(seasonInput.value) || 1;
-      const episode = parseInt(episodeInput.value) || 1;
+      const id = imdbInput.value.trim();
+      if (!id) {
+        alert('Please enter an IMDb ID');
+        return;
+      }
+      const season = seasonInput.value.trim() === '' ? 0 : parseInt(seasonInput.value);
+      const episode = episodeInput.value.trim() === '' ? 0 : parseInt(episodeInput.value);
       updateIframe(id, season, episode);
     });
 
-    // ---------- theme ----------
+    // Enter key support
+    imdbInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') loadBtn.click();
+    });
+    seasonInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') loadBtn.click();
+    });
+    episodeInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') loadBtn.click();
+    });
+
     function setTheme(dark) {
       document.body.classList.toggle('dark', dark);
       const icon = themeToggle.querySelector('i');
@@ -532,57 +627,98 @@
       setTheme(!document.body.classList.contains('dark'));
     });
 
-    // ---------- auth UI ----------
     function updateAuthUI(user) {
       if (user) {
-        authLabel.textContent = user.displayName || user.email || 'Account';
-        authBtn.innerHTML = `<i class="fas fa-user-check"></i> <span id="authLabel">${user.displayName || user.email || 'Account'}</span>`;
+        const displayName = user.displayName || user.email || 'Account';
+        authLabel.textContent = displayName;
+        authBtn.innerHTML = `<i class="fas fa-user-check"></i> <span id="authLabel">${displayName}</span>`;
         isLoggedIn = true;
         currentUser = user;
-        // load history from localStorage
-        try {
-          const stored = localStorage.getItem(`openplayer_${user.uid}`);
-          if (stored) {
-            const hist = JSON.parse(stored);
-            if (hist && hist.id) {
-              watchHistory = hist;
-              loadFromHistory(hist);
+        
+        // Load history from Firestore
+        db.collection('users').doc(user.uid).get().then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.lastWatched && data.lastWatched.id) {
+              watchHistory = data.lastWatched;
+              loadFromHistory(watchHistory);
             }
           }
-        } catch(e) {}
+        }).catch(console.error);
+        
         popup.classList.remove('active');
+        authDropdown.classList.remove('active');
       } else {
         authLabel.textContent = 'Sign in';
         authBtn.innerHTML = `<i class="fas fa-user"></i> <span id="authLabel">Sign in</span>`;
         isLoggedIn = false;
         currentUser = null;
-        // show popup if not skipped
         if (!skipPopup) {
           setTimeout(() => popup.classList.add('active'), 400);
         }
+        authDropdown.classList.remove('active');
       }
     }
 
-    // ---------- firebase auth ----------
     auth.onAuthStateChanged(user => {
       updateAuthUI(user);
     });
 
-    // login methods
+    // Toggle register mode
+    toggleRegisterBtn.addEventListener('click', function() {
+      isRegisterMode = !isRegisterMode;
+      registerFields.classList.toggle('hidden', !isRegisterMode);
+      emailBtnText.textContent = isRegisterMode ? 'Create Account' : 'Sign in with Email';
+      toggleRegisterBtn.textContent = isRegisterMode ? 'Back to sign in' : 'Create account instead';
+      popupMessage.textContent = isRegisterMode ? 'Create your account' : 'Sync your watch history across devices.';
+    });
+
+    // Email login/register
+    emailBtn.addEventListener('click', function() {
+      if (isRegisterMode) {
+        const name = registerName.value.trim();
+        const email = registerEmail.value.trim();
+        const password = registerPassword.value;
+        if (!name || !email || !password) {
+          alert('Please fill in all fields');
+          return;
+        }
+        if (password.length < 6) {
+          alert('Password must be at least 6 characters');
+          return;
+        }
+        auth.createUserWithEmailAndPassword(email, password)
+          .then(result => {
+            return result.user.updateProfile({ displayName: name });
+          })
+          .then(() => {
+            const user = auth.currentUser;
+            if (user) {
+              db.collection('users').doc(user.uid).set({
+                displayName: name,
+                email: email,
+                lastWatched: watchHistory,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              }).catch(console.error);
+            }
+            popup.classList.remove('active');
+          })
+          .catch(err => alert('Registration error: ' + err.message));
+      } else {
+        const email = prompt('Enter your email:');
+        if (email) {
+          const password = prompt('Enter your password:');
+          if (password) {
+            auth.signInWithEmailAndPassword(email, password)
+              .catch(err => alert('Login error: ' + err.message));
+          }
+        }
+      }
+    });
+
     googleBtn.addEventListener('click', function() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider).catch(e => alert('Google login error: '+e.message));
-    });
-
-    emailBtn.addEventListener('click', function() {
-      // demo: sign in with mock email
-      const email = prompt('Enter demo email (any)','user@demo.com');
-      if (email) {
-        auth.signInWithEmailAndPassword(email, 'password123').catch(() => {
-          // if not exist, create
-          auth.createUserWithEmailAndPassword(email, 'password123').catch(err => alert(err.message));
-        });
-      }
     });
 
     skipBtn.addEventListener('click', function() {
@@ -590,19 +726,47 @@
       popup.classList.remove('active');
     });
 
-    // auth button click -> show popup or logout
-    authBtn.addEventListener('click', function() {
+    authBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
       if (isLoggedIn && currentUser) {
-        if (confirm('Sign out?')) {
-          auth.signOut();
-          skipPopup = false;
-        }
+        authDropdown.classList.toggle('active');
       } else {
         popup.classList.add('active');
       }
     });
 
-    // close popup on overlay click (optional)
+    // Dropdown actions
+    dropdownProfile.addEventListener('click', function() {
+      if (currentUser) {
+        alert(`Profile\nName: ${currentUser.displayName || 'Not set'}\nEmail: ${currentUser.email}`);
+        authDropdown.classList.remove('active');
+      }
+    });
+
+    dropdownHistory.addEventListener('click', function() {
+      if (watchHistory.id) {
+        alert(`Watch History\nLast: ${watchHistory.id}\nSeason: ${watchHistory.season || 'N/A'}\nEpisode: ${watchHistory.episode || 'N/A'}`);
+      } else {
+        alert('No watch history found');
+      }
+      authDropdown.classList.remove('active');
+    });
+
+    dropdownLogout.addEventListener('click', function() {
+      if (confirm('Sign out?')) {
+        auth.signOut();
+        skipPopup = false;
+        authDropdown.classList.remove('active');
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.auth-btn') && !e.target.closest('.auth-dropdown')) {
+        authDropdown.classList.remove('active');
+      }
+    });
+
     popup.addEventListener('click', function(e) {
       if (e.target === popup) {
         popup.classList.remove('active');
@@ -610,40 +774,20 @@
       }
     });
 
-    // ---------- initial load ----------
-    // if no user, show popup after small delay
-    setTimeout(() => {
-      if (!isLoggedIn && !skipPopup) {
-        popup.classList.add('active');
-      }
-    }, 600);
-
-    // load default movie if no history
-    if (!watchHistory.id) {
-      const defaultId = 'tt1375666';
-      imdbInput.value = defaultId;
-      updateIframe(defaultId, 1, 1);
-    } else {
-      loadFromHistory(watchHistory);
-    }
-
-    // ---------- network routing (fake "reduce buffer" hint) ----------
-    // we add a 'preconnect' hint to vaplayer domain
+    // Preconnect for faster loading
     const link = document.createElement('link');
     link.rel = 'preconnect';
     link.href = 'https://vaplayer.ru';
     document.head.appendChild(link);
-    // also preconnect to firebase
+    
     const link2 = document.createElement('link');
-    link2.rel = 'preconnect';
-    link2.href = 'https://www.googleapis.com';
+    link2.rel = 'dns-prefetch';
+    link2.href = 'https://vaplayer.ru';
     document.head.appendChild(link2);
 
-    // handle enter key on inputs
-    [imdbInput, seasonInput, episodeInput].forEach(inp => {
-      inp.addEventListener('keypress', e => { if (e.key === 'Enter') loadBtn.click(); });
-    });
-
+    // Initial state
+    updateHistoryUI();
+    
     console.log('OpenPlayer ready');
   })();
 </script>
