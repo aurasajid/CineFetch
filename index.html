@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
   <title>OpenPlayer</title>
+  <!-- Favicon -->
+  <link rel="icon" href="https://i.postimg.cc/wxJCFRrX/Gemini-Generated-Image-xib44sxib44sxib4.jpg" type="image/jpeg">
   <!-- Font & Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <!-- Firebase SDKs -->
@@ -56,10 +58,12 @@
       font-weight: 600;
       font-size: 1.4rem;
       letter-spacing: -0.02em;
+      cursor: pointer;
     }
-    .logo i {
-      color: #3b82f6;
-      font-size: 1.8rem;
+    .logo img {
+      height: 40px;
+      width: auto;
+      border-radius: 8px;
     }
     .actions {
       display: flex;
@@ -249,7 +253,7 @@
     .footer-bar {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       font-size: 0.9rem;
       opacity: 0.75;
@@ -257,24 +261,111 @@
       margin-top: 0.25rem;
       padding: 0.25rem 0.5rem;
     }
-    .history-badge {
+    .history-page {
+      display: none;
+      background: #ffffffcc;
+      backdrop-filter: blur(4px);
+      padding: 2rem;
+      border-radius: 28px;
+      border: 1px solid #e9edf2;
+      min-height: 400px;
+    }
+    body.dark .history-page {
+      background: #1e293bb0;
+      border-color: #33415e;
+    }
+    .history-page.active {
+      display: block;
+    }
+    .history-page h2 {
+      margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      gap: 0.75rem;
     }
-    .history-badge i {
+    .history-page h2 i {
       color: #3b82f6;
     }
-    .resume-link {
-      color: #3b82f6;
-      font-weight: 500;
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: #f1f5f9;
+      border-radius: 16px;
       cursor: pointer;
-      text-decoration: underline dotted;
-      text-underline-offset: 4px;
+      transition: all 0.15s;
+      border: 1px solid transparent;
     }
-    .resume-link:hover {
-      color: #1d4ed8;
+    body.dark .history-item {
+      background: #1f2a44;
+    }
+    .history-item:hover {
+      transform: scale(1.01);
+      border-color: #3b82f6;
+      background: #e2e8f0;
+    }
+    body.dark .history-item:hover {
+      background: #2d3a5e;
+    }
+    .history-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .history-item-id {
+      font-weight: 600;
+      color: #3b82f6;
+    }
+    .history-item-details {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    .history-item-progress {
+      font-size: 0.85rem;
+      background: #3b82f620;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      color: #3b82f6;
+    }
+    .back-btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      transition: 0.15s;
+    }
+    body.dark .back-btn {
+      background: #2d3a5e;
+      color: #e2e8f0;
+    }
+    .back-btn:hover {
+      transform: scale(1.02);
+      background: #cbd5e1;
+    }
+    body.dark .back-btn:hover {
+      background: #3b4a72;
+    }
+    .empty-history {
+      text-align: center;
+      padding: 3rem;
+      opacity: 0.6;
+    }
+    .empty-history i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #3b82f6;
     }
     .popup-overlay {
       position: fixed;
@@ -399,6 +490,7 @@
       .load-btn { justify-content: center; }
       .header { flex-direction: column; align-items: stretch; gap: 0.5rem; }
       .actions { justify-content: space-between; }
+      .history-item { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
     }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #e2e8f0; }
@@ -410,7 +502,10 @@
 <div class="app" id="app">
 
   <header class="header">
-    <div class="logo"><i class="fas fa-film"></i> OpenPlayer</div>
+    <div class="logo" id="logoBtn">
+      <img src="https://i.postimg.cc/yxtCJ0p6/Gemini-Generated-Image-dm0z3bdm0z3bdm0z.jpg" alt="OpenPlayer Logo">
+      <span>OpenPlayer</span>
+    </div>
     <div class="actions">
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
       <div style="position:relative;">
@@ -424,33 +519,43 @@
     </div>
   </header>
 
-  <div class="controls">
-    <div class="input-group">
-      <label><i class="fas fa-id-card"></i> IMDb</label>
-      <input type="text" id="imdbInput" placeholder="tt1234567">
+  <!-- Main Player View -->
+  <div id="mainView">
+    <div class="controls">
+      <div class="input-group">
+        <label><i class="fas fa-id-card"></i> IMDb</label>
+        <input type="text" id="imdbInput" placeholder="tt1234567">
+      </div>
+      <div class="input-group">
+        <label><i class="fas fa-layer-group"></i> S</label>
+        <input type="number" id="seasonInput" min="1" placeholder="1">
+      </div>
+      <div class="input-group">
+        <label><i class="fas fa-list"></i> E</label>
+        <input type="number" id="episodeInput" min="1" placeholder="1">
+      </div>
+      <button class="load-btn" id="loadBtn"><i class="fas fa-play"></i> Watch</button>
     </div>
-    <div class="input-group">
-      <label><i class="fas fa-layer-group"></i> S</label>
-      <input type="number" id="seasonInput" min="1" placeholder="1">
+
+    <div class="player-wrapper" id="playerWrapper">
+      <iframe id="videoIframe" src="" allowfullscreen loading="lazy"></iframe>
     </div>
-    <div class="input-group">
-      <label><i class="fas fa-list"></i> E</label>
-      <input type="number" id="episodeInput" min="1" placeholder="1">
+
+    <div class="footer-bar">
+      <div><i class="fas fa-circle-info"></i> vaplayer.ru</div>
     </div>
-    <button class="load-btn" id="loadBtn"><i class="fas fa-play"></i> Watch</button>
   </div>
 
-  <div class="player-wrapper" id="playerWrapper">
-    <iframe id="videoIframe" src="" allowfullscreen loading="lazy"></iframe>
-  </div>
-
-  <div class="footer-bar">
-    <div class="history-badge">
-      <i class="fas fa-clock-rotate-left"></i> 
-      <span id="historyStatus">No history</span>
-      <span id="resumeLink" class="resume-link" style="display:none;">↻ resume</span>
+  <!-- History Page -->
+  <div class="history-page" id="historyPage">
+    <button class="back-btn" id="backBtn"><i class="fas fa-arrow-left"></i> Back to Player</button>
+    <h2><i class="fas fa-clock-rotate-left"></i> Watch History</h2>
+    <div class="history-list" id="historyList">
+      <div class="empty-history">
+        <i class="fas fa-film"></i>
+        <p>No watch history yet. Start watching movies!</p>
+      </div>
     </div>
-    <div><i class="fas fa-circle-info"></i> vaplayer.ru</div>
   </div>
 </div>
 
@@ -508,18 +613,22 @@
     const registerEmail = document.getElementById('registerEmail');
     const registerPassword = document.getElementById('registerPassword');
     const popupMessage = document.getElementById('popupMessage');
-    const historyStatus = document.getElementById('historyStatus');
-    const resumeLink = document.getElementById('resumeLink');
     const authDropdown = document.getElementById('authDropdown');
     const dropdownProfile = document.getElementById('dropdownProfile');
     const dropdownHistory = document.getElementById('dropdownHistory');
     const dropdownLogout = document.getElementById('dropdownLogout');
+    const historyPage = document.getElementById('historyPage');
+    const historyList = document.getElementById('historyList');
+    const backBtn = document.getElementById('backBtn');
+    const logoBtn = document.getElementById('logoBtn');
+    const mainView = document.getElementById('mainView');
 
     let currentUser = null;
     let watchHistory = { id: '', season: 0, episode: 0 };
     let isLoggedIn = false;
     let skipPopup = false;
     let isRegisterMode = false;
+    let allHistory = [];
 
     function buildEmbedUrl(id, season, episode) {
       if (season && episode && parseInt(season) > 0 && parseInt(episode) > 0) {
@@ -543,15 +652,25 @@
       watchHistory.episode = episodeNum;
       
       if (isLoggedIn && currentUser) {
-        const userRef = db.collection('users').doc(currentUser.uid);
-        userRef.set({
+        // Save to history
+        const historyEntry = {
+          id: id,
+          season: seasonNum,
+          episode: episodeNum,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        db.collection('users').doc(currentUser.uid).collection('history').add(historyEntry)
+          .catch(console.error);
+        
+        // Update last watched
+        db.collection('users').doc(currentUser.uid).set({
           displayName: currentUser.displayName || 'User',
           email: currentUser.email,
           lastWatched: watchHistory,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).catch(console.error);
       }
-      updateHistoryUI();
     }
 
     function loadFromHistory(history) {
@@ -560,24 +679,89 @@
         seasonInput.value = history.season || '';
         episodeInput.value = history.episode || '';
         updateIframe(history.id, history.season, history.episode);
+        // Switch back to main view
+        historyPage.classList.remove('active');
+        mainView.style.display = 'block';
       }
     }
 
-    function updateHistoryUI() {
-      if (watchHistory.id) {
-        let displayText = `Last: ${watchHistory.id}`;
-        if (watchHistory.season > 0 && watchHistory.episode > 0) {
-          displayText += ` S${watchHistory.season} E${watchHistory.episode}`;
-        }
-        historyStatus.textContent = displayText;
-        resumeLink.style.display = 'inline';
-      } else {
-        historyStatus.textContent = 'No history';
-        resumeLink.style.display = 'none';
+    // Load watch history from Firestore
+    function loadWatchHistory() {
+      if (!currentUser) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            <i class="fas fa-sign-in-alt"></i>
+            <p>Please sign in to view your watch history.</p>
+          </div>
+        `;
+        return;
       }
+
+      db.collection('users').doc(currentUser.uid).collection('history')
+        .orderBy('timestamp', 'desc')
+        .limit(50)
+        .get()
+        .then(snapshot => {
+          allHistory = [];
+          snapshot.forEach(doc => {
+            allHistory.push(doc.data());
+          });
+          renderHistory();
+        })
+        .catch(err => {
+          console.error('Error loading history:', err);
+          historyList.innerHTML = `
+            <div class="empty-history">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>Error loading history. Please try again.</p>
+            </div>
+          `;
+        });
+    }
+
+    function renderHistory() {
+      if (allHistory.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            <i class="fas fa-film"></i>
+            <p>No watch history yet. Start watching movies!</p>
+          </div>
+        `;
+        return;
+      }
+
+      historyList.innerHTML = allHistory.map(item => {
+        const seasonText = item.season > 0 ? `Season ${item.season}` : 'Movie';
+        const episodeText = item.episode > 0 ? `Episode ${item.episode}` : '';
+        const progress = item.progress || 'Watched';
+        
+        return `
+          <div class="history-item" data-id="${item.id}" data-season="${item.season || 0}" data-episode="${item.episode || 0}">
+            <div class="history-item-info">
+              <div class="history-item-id">${item.id}</div>
+              <div class="history-item-details">${seasonText} ${episodeText}</div>
+            </div>
+            <div class="history-item-progress">${progress}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Add click listeners to history items
+      document.querySelectorAll('.history-item').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = this.dataset.id;
+          const season = parseInt(this.dataset.season) || 0;
+          const episode = parseInt(this.dataset.episode) || 0;
+          loadFromHistory({ id, season, episode });
+        });
+      });
     }
 
     // Resume link
+    resumeLink = document.createElement('span');
+    resumeLink.className = 'resume-link';
+    resumeLink.style.display = 'none';
+    resumeLink.textContent = '↻ resume';
     resumeLink.addEventListener('click', function(e) {
       e.preventDefault();
       if (watchHistory.id) {
@@ -598,6 +782,9 @@
       const season = seasonInput.value.trim() === '' ? 0 : parseInt(seasonInput.value);
       const episode = episodeInput.value.trim() === '' ? 0 : parseInt(episodeInput.value);
       updateIframe(id, season, episode);
+      // Switch to main view
+      historyPage.classList.remove('active');
+      mainView.style.display = 'block';
     });
 
     // Enter key support
@@ -609,6 +796,18 @@
     });
     episodeInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') loadBtn.click();
+    });
+
+    // Logo click - go to main view
+    logoBtn.addEventListener('click', function() {
+      historyPage.classList.remove('active');
+      mainView.style.display = 'block';
+    });
+
+    // Back button
+    backBtn.addEventListener('click', function() {
+      historyPage.classList.remove('active');
+      mainView.style.display = 'block';
     });
 
     function setTheme(dark) {
@@ -635,13 +834,16 @@
         isLoggedIn = true;
         currentUser = user;
         
-        // Load history from Firestore
+        // Load last watched from Firestore
         db.collection('users').doc(user.uid).get().then(doc => {
           if (doc.exists) {
             const data = doc.data();
             if (data.lastWatched && data.lastWatched.id) {
               watchHistory = data.lastWatched;
-              loadFromHistory(watchHistory);
+              imdbInput.value = watchHistory.id;
+              seasonInput.value = watchHistory.season || '';
+              episodeInput.value = watchHistory.episode || '';
+              updateIframe(watchHistory.id, watchHistory.season, watchHistory.episode);
             }
           }
         }).catch(console.error);
@@ -653,6 +855,7 @@
         authBtn.innerHTML = `<i class="fas fa-user"></i> <span id="authLabel">Sign in</span>`;
         isLoggedIn = false;
         currentUser = null;
+        allHistory = [];
         if (!skipPopup) {
           setTimeout(() => popup.classList.add('active'), 400);
         }
@@ -744,12 +947,11 @@
     });
 
     dropdownHistory.addEventListener('click', function() {
-      if (watchHistory.id) {
-        alert(`Watch History\nLast: ${watchHistory.id}\nSeason: ${watchHistory.season || 'N/A'}\nEpisode: ${watchHistory.episode || 'N/A'}`);
-      } else {
-        alert('No watch history found');
-      }
       authDropdown.classList.remove('active');
+      // Show history page
+      mainView.style.display = 'none';
+      historyPage.classList.add('active');
+      loadWatchHistory();
     });
 
     dropdownLogout.addEventListener('click', function() {
@@ -785,9 +987,6 @@
     link2.href = 'https://vaplayer.ru';
     document.head.appendChild(link2);
 
-    // Initial state
-    updateHistoryUI();
-    
     console.log('OpenPlayer ready');
   })();
 </script>
