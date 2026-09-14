@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <meta name="google-site-verification" content="SIhHLFyCpSH9kBdCv8_F3dGjubPpo9MkXsyAh0VoGMM" />
   <title>IMDbFetch</title>
   <link rel="icon" href="https://i.postimg.cc/YSX9gf2y/3787a1b2-682e-4782-a00a-b8e33dc0a30d-removalai-preview.png" type="image/png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -632,10 +633,6 @@
     <div class="player-wrapper" id="playerWrapper">
       <iframe id="videoIframe" src="" allowfullscreen loading="lazy"></iframe>
     </div>
-   <!-- Developer Credit -->
-<div style="text-align: center; padding: 1rem 0 0.5rem; opacity: 0.6; font-size: 0.9rem;">
-    <p>Developed with <i class="fas fa-heart" style="color: #3b82f6;"></i> by <a href="https://t.me/aura_sajid" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: none; font-weight: 600;">SAJID</a></p>
-</div>
   </div>
 
   <div class="history-page" id="historyPage">
@@ -649,6 +646,11 @@
         <p>No watch history yet. Start watching!</p>
       </div>
     </div>
+  </div>
+
+  <!-- Developer Credit -->
+  <div style="text-align: center; padding: 1rem 0 0.5rem; opacity: 0.6; font-size: 0.9rem;">
+    <p>Developed with <i class="fas fa-heart" style="color: #3b82f6;"></i> by <a href="https://t.me/aura_sajid" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: none; font-weight: 600;">SAJID</a></p>
   </div>
 </div>
 
@@ -723,6 +725,7 @@
     let skipPopup = false;
     let isRegisterMode = false;
     let allHistory = [];
+    let urlParamsHandled = false; // Prevent re-handling on auth change
 
     function buildEmbedUrl(id, season, episode) {
       if (season && episode && parseInt(season) > 0 && parseInt(episode) > 0) {
@@ -731,7 +734,7 @@
       return `https://vaplayer.ru/embed/movie/${id}`;
     }
 
-    function updateIframe(id, season, episode) {
+    function updateIframe(id, season, episode, saveHistory = true) {
       if (!id) {
         iframe.src = '';
         return;
@@ -745,7 +748,7 @@
       watchHistory.season = seasonNum;
       watchHistory.episode = episodeNum;
       
-      if (isLoggedIn && currentUser) {
+      if (saveHistory && isLoggedIn && currentUser) {
         const historyEntry = {
           id: id,
           season: seasonNum,
@@ -761,6 +764,25 @@
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).catch(console.error);
       }
+    }
+
+    // Check URL params and load requested movie
+    function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const season = parseInt(params.get('season')) || 0;
+      const episode = parseInt(params.get('episode')) || 0;
+
+      if (id) {
+        imdbInput.value = id;
+        seasonInput.value = season > 0 ? season : '';
+        episodeInput.value = episode > 0 ? episode : '';
+        updateIframe(id, season, episode);
+        // Clean up URL without reloading
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return true;
+      }
+      return false;
     }
 
     function loadFromHistory(history) {
@@ -895,18 +917,22 @@
         authBtn.innerHTML = `<i class="fas fa-user-check"></i> <span id="authLabel">${displayName}</span>`;
         isLoggedIn = true;
         currentUser = user;
-        db.collection('users').doc(user.uid).get().then(doc => {
-          if (doc.exists) {
-            const data = doc.data();
-            if (data.lastWatched && data.lastWatched.id) {
-              watchHistory = data.lastWatched;
-              imdbInput.value = watchHistory.id;
-              seasonInput.value = watchHistory.season || '';
-              episodeInput.value = watchHistory.episode || '';
-              updateIframe(watchHistory.id, watchHistory.season, watchHistory.episode);
+
+        // Only load lastWatched if URL params are NOT present
+        if (!urlParamsHandled) {
+          db.collection('users').doc(user.uid).get().then(doc => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (data.lastWatched && data.lastWatched.id) {
+                watchHistory = data.lastWatched;
+                imdbInput.value = watchHistory.id;
+                seasonInput.value = watchHistory.season || '';
+                episodeInput.value = watchHistory.episode || '';
+                updateIframe(watchHistory.id, watchHistory.season, watchHistory.episode, false);
+              }
             }
-          }
-        }).catch(console.error);
+          }).catch(console.error);
+        }
         popup.classList.remove('active');
         authDropdown.classList.remove('active');
       } else {
@@ -915,7 +941,8 @@
         isLoggedIn = false;
         currentUser = null;
         allHistory = [];
-        if (!skipPopup) {
+        // Only show popup if URL params are NOT present
+        if (!skipPopup && !urlParamsHandled) {
           setTimeout(() => popup.classList.add('active'), 400);
         }
         authDropdown.classList.remove('active');
@@ -1032,7 +1059,15 @@
     link2.href = 'https://vaplayer.ru';
     document.head.appendChild(link2);
 
-    console.log('IMDbFetch refined');
+    // ========== INITIALIZATION ==========
+
+    // 1. Handle URL params FIRST (before auth state changes)
+    urlParamsHandled = handleUrlParams();
+
+    // 2. If no URL params, wait for auth state to load lastWatched
+    // (handled inside updateAuthUI)
+
+    console.log('IMDbFetch refined | URL params handled:', urlParamsHandled);
   })();
 </script>
 </body>
